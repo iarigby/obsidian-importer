@@ -9,6 +9,7 @@ import { FormatImporter } from '../format-importer';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
 import { SQLiteTagSpawned } from './apple-notes/models';
+import dateFormat from 'dateformat';
 
 const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
@@ -252,7 +253,10 @@ export class AppleNotesImporter extends FormatImporter {
 		
 		const folder = this.resolvedFolders[row.ZFOLDER] || this.rootFolder;
 		
-		const title = `${row.ZTITLE1}.md`;
+		const createdTime = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
+		const createdDate = dateFormat(new Date(createdTime), 'yymmdd');
+		const title = `${createdDate}.md`;
+
 		const file = await this.saveAsMarkdownFile(folder, title, '');
 		
 		this.ctx.status(`Importing note ${title}`);
@@ -263,7 +267,7 @@ export class AppleNotesImporter extends FormatImporter {
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 		
 		this.vault.modify(file, await converter.format(), { 
-			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
+			ctime: createdTime,
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1) 
 		});
 		
